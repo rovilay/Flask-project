@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, request, Response, json
 from temp_models import books
+from settings import app
+from book_model import Book as BookModel
 
-app = Flask(__name__)
-app.config.from_envvar('APP_CONFIG')
+Book = BookModel()
 
 def validate_book(book, patch_check=False):
     book_keys = list(book.keys())
@@ -34,53 +35,56 @@ def welcome():
 
 @app.route('/books')
 def get_books():
-    response = Response(json.dumps({ 
-            'message': 'Books retrieved Successfully',
+    all_books = Book.get_all_books()
+    response = Response(
+        json.dumps({
+            'message': 'books retrieved successfully',
             'success': True,
-            'books': books
-        }), status=200, mimetype='application/json')
+            'books': all_books
+        }), status=200, mimetype='application/json'
+    )
     response.headers['Location'] = "/books"    
     return response
 
 @app.route('/books/<int:id>')
 def get_books_by_id(id):
-    found_book = list(filter(lambda book : book['id'] == id, books))
+    found_book = Book.get_book(id)
     if found_book:
-        response = Response(json.dumps({ 
-            'message': 'Book retrieved Successfully',
+        response = Response(
+            json.dumps({
+            'message': 'book retrieved successfully',
             'success': True,
-            'book': found_book[0]
-        }), status=200, mimetype='application/json')
+            'book': found_book
+        }), status=200, mimetype='application/json'
+        )
         response.headers['Location'] = "/books/" + str(id)
         return response
     else:
         response = Response(json.dumps({ 
-            'message': 'No book matching this id',
+            'message': f'No book matching this id: {id}',
             'success': False,
         }), status=404, mimetype='application/json')
+        response.headers['Location'] = "/books/" + str(id)
         return response
 
 @app.route('/books', methods=['POST'])
 def add_books():
-    new_book = request.get_json()
-    valid_book = validate_book(new_book)
+    new_book_data = request.get_json()
+    valid_book = validate_book(new_book_data)
 
     if valid_book['is_valid']:
-        last_book_index = len(books) - 1
-        new_book['id'] = books[last_book_index]['id'] + 1
-        book = {
-                "id": new_book['id'],
-                "name": new_book['name'],
-                "price": new_book['price'],
-                "isbn": new_book['isbn']
-            }
-        books.append(book)
-        response = Response(json.dumps({ 
-            'message': 'Book created Successfully',
+        name = new_book_data['name']
+        price = new_book_data['price']
+        isbn = new_book_data['isbn']
+
+        new_book = Book.add_book(name, price, isbn)
+        response = Response(json.dumps({
+            'message': 'book created successfully',
             'success': True,
-            'book': book
-        }), status=201, mimetype='application/json')
-        response.headers['Location'] = "/books/" + str(book['id'])
+            'book': new_book
+        }), status=201, mimetype='application/json'
+        )
+        response.headers['Location'] = "/books/" + str(id)
         return response
     else:
         props = ", ".join(valid_book['missing_props'])
@@ -88,18 +92,18 @@ def add_books():
             'message': f'book parameter(s): {props} is/are missing',
             'success': False
         }), status=400, mimetype='application/json')
-        response.headers['Location'] = "/books/" + str(book['id'])
+        response.headers['Location'] = "/books/" + str(id)
         return response
 
 @app.route('/books/<int:id>', methods=['PUT', 'PATCH'])
 def update_books(id):
-    book_update = request.get_json()
+    book_update_data = request.get_json()
+    print('<<<<<>>>>>>', book_update_data)
     patch_book = True if request.method == 'PATCH' else False
-    valid_book = validate_book(book_update, patch_book)
+    valid_book = validate_book(book_update_data, patch_book)
 
     if valid_book['is_valid']:
-        updated_book = update_book(id, book_update, books)
-
+        updated_book = Book.update_book(id, book_update_data)
         if updated_book:
             response = Response(json.dumps({
                 'message':'Update successful',
@@ -125,13 +129,7 @@ def update_books(id):
 
 @app.route('/books/<int:id>', methods=['DELETE'])
 def delete_books(id):
-    book_deleted = False
-    for index, book in enumerate(books):
-        if book['id'] == id:
-            del books[index]
-            book_deleted = True
-            break
-    
+    book_deleted = Book.delete_book(id)
     if book_deleted:
         response = Response(json.dumps({
         'message':'Delete successful',

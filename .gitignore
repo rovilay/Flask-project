@@ -4,3 +4,4 @@ __pycache__/
 config.cfg
 try.py
 *.pyc
+*.db
