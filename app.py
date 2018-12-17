@@ -123,5 +123,29 @@ def update_books(id):
         response.headers['Location'] = "/books/" + str(id)
         return response
 
+@app.route('/books/<int:id>', methods=['DELETE'])
+def delete_books(id):
+    book_deleted = False
+    for index, book in enumerate(books):
+        if book['id'] == id:
+            del books[index]
+            book_deleted = True
+            break
+    
+    if book_deleted:
+        response = Response(json.dumps({
+        'message':'Delete successful',
+        'success': True,
+        }), status=200, mimetype='application/json')
+        response.headers['Location'] = "/books/" + str(id)
+        return response
+    else:
+        response = Response(json.dumps({
+            'message': f'book with id: {id} was not found',
+            'success': False
+        }), status=404, mimetype='application/json')
+        response.headers['Location'] = "/books/" + str(id)
+        return response
+
 app.run(port=5000)
  
