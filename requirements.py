@@ -1,4 +1,6 @@
 asn1crypto==0.24.0
+autopep8==1.4.3
+bcrypt==3.1.5
 cffi==1.11.5
 Click==7.0
 cryptography==2.4.2
@@ -10,6 +12,7 @@ Jinja2==2.10
 MarkupSafe==1.1.0
 psycopg2==2.7.6.1
 psycopg2-binary==2.7.6.1
+pycodestyle==2.4.0
 pycparser==2.19
 PyJWT==1.7.1
 six==1.12.0
