@@ -2,7 +2,7 @@ from flask import request
 from datetime import datetime, timedelta
 import jwt
 import re
-from .__helpers import server_res, CustomException
+from .__helpers import server_res, CustomException, refine_token
 from __models import User as UserModel
 
 User = UserModel()
@@ -23,7 +23,7 @@ def validate_user_names(user_data, errors_obj={}):
         for key in list(common_keys):
             val = user_data[key]
 
-            # checks if integer is in name
+            # checks if integer is in title
             if int_reg.search(val) is not None:
                 errors[key] = f'firstname and lastname must not contain numbers'
 
@@ -62,16 +62,6 @@ def get_token(secret_key, payload={},):
         payload['exp'] = expiration_date
         token = jwt.encode(payload, secret_key, algorithm='HS256')
         return token
-    except Exception as e:
-        return e
-
-
-def refine_token(token):
-    try:
-        reg = re.compile(r"(^(b'))")
-        refined_token = token if reg.match(
-            token) is None else token.split("'")[1]
-        return refined_token
     except Exception as e:
         return e
 
@@ -118,5 +108,4 @@ def authenticate(secret_key):
     except CustomException as e:
         return e.get_exception_obj()
     except Exception as e:
-
         return e
