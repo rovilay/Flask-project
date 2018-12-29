@@ -17,13 +17,14 @@ def get_all_books(secret_key):
             return response
         else:
             personal = request.args.get('personal')
-            if personal == '' or personal.lower() == 'false':
-                all_books = Book.get_all_books()
+            user_id = decoded_token['id']
+
+            if personal is None or personal == '' or personal.lower() == 'false':
+                all_books = Book.get_all_books(user_id=user_id)
                 response = server_res('books retrieved successfully', success=True,
                                       status=200, book_data=all_books)
                 return response
             elif personal.lower() == 'true':
-                user_id = decoded_token['id']
                 personal_books = Book.get_all_books(
                     personal=True, user_id=user_id)
                 response = server_res('books retrieved successfully', success=True,
@@ -76,12 +77,13 @@ def create_books(secret_key):
         book = validate_book(new_book_data)
 
         if book['is_valid']:
-            name = new_book_data['name']
+            title = new_book_data['title']
             price = new_book_data['price']
             isbn = new_book_data['isbn']
             user_id = decoded_token['id']
-            new_book = Book.add_book(name, price, isbn, user_id)
-            book_err_msg = 'Book with the same name already exist!'
+            image = new_book_data['image'] if "image" in new_book_data else None
+            new_book = Book.add_book(title, price, isbn, user_id, image)
+            book_err_msg = 'Book with the same title already exist!'
             if isinstance(new_book, Exception) and str(new_book) == book_err_msg:
                 raise CustomException(book_err_msg, status=409)
             else:
@@ -129,7 +131,7 @@ def modify_books(secret_key, id):
                 message = f'book with id: {id} was not found'
                 response = server_res(message, status=404, location=location)
         else:
-            message = 'Book parameters must contain name, price and/or isbn'
+            message = 'Book parameters must contain title, price and/or isbn'
             response = server_res(message, status=400, location=location)
         return response
     except Exception as e:
@@ -161,3 +163,79 @@ def remove_books(secret_key, id):
         return response
     except Exception as e:
         return server_res(str(e))
+
+
+def fav_book(secret_key, id):
+    location = f'/books/{id}/favourites'
+    try:
+        decoded_token = authenticate(secret_key)
+        if 'message' and 'status' in decoded_token:
+            response = server_res(
+                decoded_token['message'], status=decoded_token['status']
+            )
+            return response
+
+        user_id = decoded_token['id']
+        favourite_book = Book.favourite_book(id, user_id)
+        response = None
+        if favourite_book is True:
+            message = 'Book added as favourite'
+            response = server_res(message, status=200, location=location)
+        else:
+            message = f'book with id: {id} was not found'
+            response = server_res(message, status=404, location=location)
+        return response
+    except Exception as e:
+        return server_res(str(e))
+
+
+def del_fav_book(secret_key, id):
+    location = f'/books/{id}/favourites'
+    try:
+        decoded_token = authenticate(secret_key)
+        if 'message' and 'status' in decoded_token:
+            response = server_res(
+                decoded_token['message'], status=decoded_token['status']
+            )
+            return response
+
+        user_id = decoded_token['id']
+        remove_fav_book = Book.remove_favourite_book(id, user_id)
+        response = None
+        if remove_fav_book is True:
+            message = 'Book removed as favourite'
+            response = server_res(message, status=200, location=location)
+        elif remove_fav_book is False:
+            message = f'book with id: {id} was not found'
+            response = server_res(message, status=404, location=location)
+        else:
+            message = 'Book not in your favourites'
+            response = server_res(message, status=400, location=location)
+        return response
+    except Exception as e:
+        return server_res(str(e))
+
+
+def get_all_fav_books(secret_key):
+    location = f'/books/favourites'
+    try:
+        decoded_token = authenticate(secret_key)
+        if 'message' and 'status' in decoded_token:
+            response = server_res(
+                decoded_token['message'], status=decoded_token['status']
+            )
+            return response
+
+        user_id = decoded_token['id']
+        all_fav_books = Book.get_all_fav_books(user_id)
+        # for book in all_fav_books:
+        #     print('book', book)
+        #     a.append(json.dumps(book))
+        response = None
+        if all_fav_books:
+            message = 'your favourite books retrieved successfully'
+            response = server_res(message, status=200, success=True,
+                                  location=location, book_data=str(all_fav_books))
+        return response
+    except Exception as e:
+        return server_res(str(e), location=location)

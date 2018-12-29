@@ -1,6 +1,7 @@
 def validate_book(book, patch_check=False):
     book_keys = list(book.keys())
-    valid_keys = ['name', 'isbn', 'price']
+    valid_keys = ['title', 'isbn', 'price',
+                  'image', 'image_name'] if patch_check else ['title', 'isbn', 'price']
     diff = set(valid_keys).intersection(book_keys) if patch_check else set(
         valid_keys).difference(book_keys)
 
@@ -15,7 +16,7 @@ def update_book(id, book_update, books):
     for book in books:
         if book['id'] == id:
             book.update({
-                "name": book_update["name"] if "name" in book_update else book["name"],
+                "title": book_update["title"] if "title" in book_update else book["title"],
                 "price": book_update["price"] if "price" in book_update else book["price"],
                 "isbn": book_update["isbn"] if "isbn" in book_update else book["isbn"]
             })
@@ -27,7 +28,8 @@ def update_book(id, book_update, books):
 
 def refine_book_data(book_data):
     try:
-        valid_book_properties = ['name', 'isbn', 'price']
+        valid_book_properties = ['title', 'isbn',
+                                 'price', 'image', 'image_name']
         refined_book = {key: value for key,
                         value in book_data.items() if key in valid_book_properties}
         return refined_book
