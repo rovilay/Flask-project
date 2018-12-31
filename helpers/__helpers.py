@@ -44,7 +44,6 @@ def check_password(password, hashed):
     byte_password = bytes(password, encoding='utf-8')
     hasheds = '$2y$12$sZvqknq.WcatWo/dr4eJt.WB1fSmOi1ot7gYbzCX5lPXlFEUWmKSu'
     check = bcrypt.checkpw(byte_password, bytes(hashed, encoding='utf-8'))
-    print('========', check)
     return check
 
 

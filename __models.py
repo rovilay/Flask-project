@@ -19,7 +19,7 @@ class User(Base):
     password = Column(String(225), nullable=False)
     books = relationship('Book', backref='user')
     fav_books = relationship('Book', backref=backref(
-        'favourites', lazy='select'), secondary='favourites')
+        'favourites', lazy='select'), secondary='favourites', cascade='all')
 
     def json_response(self):
         return {
@@ -32,7 +32,6 @@ class User(Base):
     def add_user(self, _firstname, _lastname, _email, _password):
         try:
             password = hash_password(_password)
-            print('pass===++++ ', password)
             new_user = User(firstname=_firstname, lastname=_lastname,
                             email=_email.lower(), password=password)
             db_session.add(new_user)
@@ -65,11 +64,9 @@ class User(Base):
         user = db_session.query(User)\
             .filter_by(email=_email.lower())\
             .first()
-        print('valid====', _password)
 
         if user:
             valid = check_password(_password, user.password)
-            print('valid====', valid)
             res = User.json_response(user) if valid else False
             return res
         else:
@@ -103,7 +100,7 @@ class Book(Base):
     image_name = Column(String(80), nullable=False, default="book-demo")
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     fav_users = relationship('User', backref=backref(
-        'favourites',  lazy='joined'), secondary='favourites', lazy='joined')
+        'favourites',  lazy='joined'), secondary='favourites', lazy='joined',  cascade='all')
 
     def json_response(self):
         return {
@@ -124,7 +121,9 @@ class Book(Base):
                             isbn=_isbn, user_id=_user_id, image=_image, image_name=image_name)
             db_session.add(new_book)
             db_session.commit()
-            return Book.json_response(new_book)
+            a = Book.json_response(new_book)
+            a.update({'favourite': False, 'user': {'id': _user_id}})
+            return a
         except IntegrityError as e:
             db_session.close()
             return Exception('Book with the same title already exist!')
@@ -159,6 +158,10 @@ class Book(Base):
             book = db_session.query(Book).filter_by(id=id).first()
             _book = Book.json_response(book) if book else None
             if _book and _book['user_id'] == user_id:
+                book.favourites.clear()
+                db_session.commit()
+
+                book = db_session.query(Book).filter_by(id=id).first()
                 db_session.delete(book)
                 db_session.commit()
                 return True
@@ -177,12 +180,11 @@ class Book(Base):
             if book and user:
                 a = book.favourites.append(user)
                 db_session.commit()
-                return True
+                return book
             else:
                 return False
         except Exception as e:
             db_session.close()
-            print('error occurred in favourite', e)
             return e
 
     def remove_favourite_book(self, id, user_id):
@@ -227,12 +229,15 @@ class Book(Base):
 
     def _add_favs(self, books, fav_books):
         a = {'favourite': True}
+        b = {'favourite': False}
         c = books.copy()
         fav_ids = [book.id for book in fav_books]
 
         for book in c:
             if book['id'] in fav_ids:
                 book.update(a)
+            else:
+                book.update(b)
 
         return c
 
@@ -249,7 +254,6 @@ class Book(Base):
                 .all()
 
         fav_books = self.get_all_fav_books(user_id)
-
         c = [self._refine_book(response) for response in result] if len(
             result) > 0 else result
 
