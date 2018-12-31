@@ -81,7 +81,7 @@ def create_books(secret_key):
             price = new_book_data['price']
             isbn = new_book_data['isbn']
             user_id = decoded_token['id']
-            image = new_book_data['image'] if "image" in new_book_data else None
+            image = new_book_data['image'] if "image" in new_book_data and new_book_data['image'] != "" else None
             new_book = Book.add_book(title, price, isbn, user_id, image)
             book_err_msg = 'Book with the same title already exist!'
             if isinstance(new_book, Exception) and str(new_book) == book_err_msg:
@@ -177,10 +177,13 @@ def fav_book(secret_key, id):
 
         user_id = decoded_token['id']
         favourite_book = Book.favourite_book(id, user_id)
+        a = json.loads(str(favourite_book))
+        a.update({'favourite': True})
         response = None
-        if favourite_book is True:
+        if favourite_book:
             message = 'Book added as favourite'
-            response = server_res(message, status=200, location=location)
+            response = server_res(message, status=200,
+                                  location=location, book_data=a)
         else:
             message = f'book with id: {id} was not found'
             response = server_res(message, status=404, location=location)
@@ -228,14 +231,15 @@ def get_all_fav_books(secret_key):
 
         user_id = decoded_token['id']
         all_fav_books = Book.get_all_fav_books(user_id)
-        # for book in all_fav_books:
-        #     print('book', book)
-        #     a.append(json.dumps(book))
+        a = json.loads(str(all_fav_books))
+        for book in a:
+            book.update({'favourite': True})
+
         response = None
-        if all_fav_books:
+        if len(all_fav_books) >= 0:
             message = 'your favourite books retrieved successfully'
             response = server_res(message, status=200, success=True,
-                                  location=location, book_data=str(all_fav_books))
+                                  location=location, book_data=a)
         return response
     except Exception as e:
         return server_res(str(e), location=location)

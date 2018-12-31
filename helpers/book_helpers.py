@@ -32,6 +32,8 @@ def refine_book_data(book_data):
                                  'price', 'image', 'image_name']
         refined_book = {key: value for key,
                         value in book_data.items() if key in valid_book_properties}
+        if refined_book['image'] == "":
+            refined_book['image'] = "https://res.cloudinary.com/rovilay/image/upload/v1546053854/book-demo.jpg"
         return refined_book
     except Exception as e:
         return e
