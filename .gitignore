@@ -5,4 +5,5 @@ config.cfg
 try.py
 *.pyc
 *.db
+*.env
 migration_setup.py

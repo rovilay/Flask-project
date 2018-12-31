@@ -4,13 +4,27 @@ from functools import wraps
 from controllers.user_controller import signup_user, login_user
 from controllers.book_controller import get_all_books, get_books_by_id,\
     create_books, modify_books, remove_books, fav_book, del_fav_book, get_all_fav_books
-# from decorators.auth import auth_user
-from settings import app
+from settings import PORT, SECRET_KEY, DEBUG, DATABASE_URL, SQLALCHEMY_TRACK_MODIFICATIONS
+from __init_models import init_db
+
+app = Flask(__name__)
+
+app.config['DEBUG'] = DEBUG
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
+app.config['SECRET_KEY'] = SECRET_KEY
 
 secret_key = app.config['SECRET_KEY']
 
+init_db()
+
 base_url = '/api/v1'
 CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
+
+
+@app.route('/')
+def welcomer():
+    return 'Welcome to this flask app!'
 
 
 @app.route(f'{base_url}/')
@@ -68,4 +82,5 @@ def remove_fav_books(id):
     return del_fav_book(secret_key, id)
 
 
-app.run(port=5000)
+if __name__ == '__main__':
+    app.run(port=PORT)
